@@ -52,11 +52,13 @@ class App extends Component {
       const endPos = backItem.selectionEnd;
       if (startPos === 0 && endPos === 0 && i !== 0) {
         e.preventDefault();
-        const extra = text.splice(i);
+        const originalLength = text[i - 1].length;
+        const extra = text.splice(i, 1);
         text[i - 1] += extra[0];
         this.setState({ text }, () => {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
+          this[inputElement].setSelectionRange(originalLength, originalLength);
         });
       }
     }
