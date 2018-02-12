@@ -11,6 +11,8 @@ class App extends Component {
       text: ['Hello World'],
       focusIndex: 0,
     };
+
+    autobind(this);
   }
 
   handleChange = (e, i) => {
@@ -41,21 +43,43 @@ class App extends Component {
     }
   }
 
+  handleKeyDown(e, i) {
+    const key = e.keyCode || e.charCode;
+    if (key == 8 || key == 46) {
+      const text = Object.assign([], this.state.text);
+      const backItem = this['input' + i];
+      const startPos = backItem.selectionStart;
+      const endPos = backItem.selectionEnd;
+      if (startPos === 0 && endPos === 0 && i !== 0) {
+        e.preventDefault();
+        const extra = text.splice(i);
+        text[i - 1] += extra[0];
+        this.setState({ text }, () => {
+          const inputElement = 'input' + (i - 1);
+          this[inputElement].focus();
+        });
+      }
+    }
+    return false;
+  }
+
   render = () => {
     return (
       <div>
         <div style={{ background: '#f5f5f5' }}>{this.state.text.join('\n')}</div>
         {this.state.text.map((line, i) => {
           return (
-            <div>
+            <div key={i}>
               <input
-                key={i}
                 value={line}
                 onChange={e => {
                   this.handleChange(e, i);
                 }}
                 onKeyPress={e => {
                   this.handleKeyPress(e, i);
+                }}
+                onKeyDown={e => {
+                  this.handleKeyDown(e, i);
                 }}
                 ref={ref => (this['input' + i] = ref)}
               />
