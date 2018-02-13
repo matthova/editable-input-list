@@ -13,22 +13,21 @@ class App extends Component {
     this.state = {
       text: (list != null && list.split('\n')) || ['<<0>>'],
     };
-
     autobind(this);
   }
 
   componentDidMount() {
     // Save the list to local storage before closing
-    // window.addEventListener('unload', ev => {
-    //   localStorage.setItem('list', this.state.text.join('\n'));
-    // });
+    window.addEventListener('unload', ev => {
+      localStorage.setItem('list', this.state.text.join('\n'));
+    });
   }
 
   handleChange = (e, i) => {
     // Update the input item when text is added
     e.preventDefault();
     const text = Object.assign([], this.state.text);
-    text[i] = e.target.value;
+    text[i] = text[i].substring(0, 5) + e.target.value;
     this.setState({ text });
   };
 
@@ -89,12 +88,9 @@ class App extends Component {
 
   handleToggleChecked(e, i) {
     const text = Object.assign([], this.state.text);
-    console.log(text[i], e.target.checked);
     text[i] = e.target.checked
       ? text[i].replace('<<0>>', '<<1>>')
       : text[i].replace('<<1>>', '<<0>>');
-
-    console.log(text[i]);
 
     this.setState({ text }, () => {
       localStorage.setItem('list', this.state.text.join('\n'));
@@ -105,35 +101,37 @@ class App extends Component {
     const checkboxReg = /<<(\d)>>/;
     return (
       <div>
-        {this.state.text.map((line, i) => {
-          const checkboxMatch = line.match(checkboxReg);
-          console.log(checkboxMatch);
-          const checked = Array.isArray(checkboxMatch) && checkboxMatch[1] === '1' ? true : false;
-          return (
-            <div key={i}>
-              <input
-                type="checkbox"
-                onChange={e => {
-                  this.handleToggleChecked(e, i);
-                }}
-                checked={checked}
-              />
-              <input
-                value={line.replace(checkboxReg, '')}
-                onChange={e => {
-                  this.handleChange(e, i);
-                }}
-                onKeyPress={e => {
-                  this.handleKeyPress(e, i);
-                }}
-                onKeyDown={e => {
-                  this.handleKeyDown(e, i);
-                }}
-                ref={ref => (this['input' + i] = ref)}
-              />
-            </div>
-          );
-        })}
+        {/* <div>{this.state.text.join('\n')}</div> */}
+        <div>
+          {this.state.text.map((line, i) => {
+            const checkboxMatch = line.match(checkboxReg);
+            const checked = Array.isArray(checkboxMatch) && checkboxMatch[1] === '1' ? true : false;
+            return (
+              <div key={i}>
+                <input
+                  type="checkbox"
+                  onChange={e => {
+                    this.handleToggleChecked(e, i);
+                  }}
+                  checked={checked}
+                />
+                <input
+                  value={line.replace(checkboxReg, '')}
+                  onChange={e => {
+                    this.handleChange(e, i);
+                  }}
+                  onKeyPress={e => {
+                    this.handleKeyPress(e, i);
+                  }}
+                  onKeyDown={e => {
+                    this.handleKeyDown(e, i);
+                  }}
+                  ref={ref => (this['input' + i] = ref)}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
