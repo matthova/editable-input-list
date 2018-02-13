@@ -1,8 +1,8 @@
 {
-  "name": "editable-list-input",
+  "name": "editable-input-list",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://matthova.github.io/editable-list-input",
+  "homepage": "https://matthova.github.io/editable-input-list",
   "dependencies": {
     "react": "^16.2.0",
     "react-autobind": "^1.0.6",
