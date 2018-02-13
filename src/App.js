@@ -11,7 +11,7 @@ class App extends Component {
     const list = localStorage.getItem('list');
 
     this.state = {
-      text: (list != null && list.split('\n')) || [''],
+      text: (list != null && list.split('\n')) || ['<<0>>'],
     };
 
     autobind(this);
@@ -19,13 +19,9 @@ class App extends Component {
 
   componentDidMount() {
     // Save the list to local storage before closing
-    window.addEventListener('beforeunload', ev => {
-      localStorage.setItem('list', this.state.text.join('\n'));
-    });
-  }
-
-  componentWillUnmount() {
-    localStorage.setItem('list', this.state.text.join('\n'));
+    // window.addEventListener('unload', ev => {
+    //   localStorage.setItem('list', this.state.text.join('\n'));
+    // });
   }
 
   handleChange = (e, i) => {
@@ -45,16 +41,19 @@ class App extends Component {
       const startPos = splitElement.selectionStart;
       const endPos = splitElement.selectionEnd;
 
-      const beginning = text[i].substring(0, startPos);
+      const checked = text[i].substring(0, 5);
+      const textArea = text[i].substring(5);
+      const beginning = textArea.substring(0, startPos);
       // The middle area will be deleted
-      const middle = text[i].substring(startPos, endPos);
-      const end = text[i].substring(endPos, text[i].length);
+      const middle = textArea.substring(startPos, endPos);
+      const end = '<<0>>' + textArea.substring(endPos, text[i].length);
 
-      text[i] = beginning;
+      text[i] = checked + beginning;
       text.splice(i + 1, 0, end);
 
       this.setState({ text }, () => {
         this['input' + (i + 1)].focus();
+        localStorage.setItem('list', this.state.text.join('\n'));
       });
     }
   }
@@ -62,15 +61,17 @@ class App extends Component {
   handleKeyDown(e, i) {
     const key = e.keyCode || e.charCode;
     // if the user hits backspace
-    if (key == 8 || key == 46) {
+    if (key === 8 || key === 46) {
       const text = Object.assign([], this.state.text);
       const backItem = this['input' + i];
       const startPos = backItem.selectionStart;
       const endPos = backItem.selectionEnd;
+
       // If the cursor is at the beginning
       // And it's not highlighted
       // and it's not the first item
       if (startPos === 0 && endPos === 0 && i !== 0) {
+        // backspace can cause the browser to go back in history
         e.preventDefault();
         const originalLength = text[i - 1].length;
         const extra = text.splice(i, 1);
@@ -79,20 +80,46 @@ class App extends Component {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
           this[inputElement].setSelectionRange(originalLength, originalLength);
+          localStorage.setItem('list', this.state.text.join('\n'));
         });
       }
     }
     return false;
   }
 
+  handleToggleChecked(e, i) {
+    const text = Object.assign([], this.state.text);
+    console.log(text[i], e.target.checked);
+    text[i] = e.target.checked
+      ? text[i].replace('<<0>>', '<<1>>')
+      : text[i].replace('<<1>>', '<<0>>');
+
+    console.log(text[i]);
+
+    this.setState({ text }, () => {
+      localStorage.setItem('list', this.state.text.join('\n'));
+    });
+  }
+
   render = () => {
+    const checkboxReg = /<<(\d)>>/;
     return (
       <div>
         {this.state.text.map((line, i) => {
+          const checkboxMatch = line.match(checkboxReg);
+          console.log(checkboxMatch);
+          const checked = Array.isArray(checkboxMatch) && checkboxMatch[1] === '1' ? true : false;
           return (
             <div key={i}>
               <input
-                value={line}
+                type="checkbox"
+                onChange={e => {
+                  this.handleToggleChecked(e, i);
+                }}
+                checked={checked}
+              />
+              <input
+                value={line.replace(checkboxReg, '')}
                 onChange={e => {
                   this.handleChange(e, i);
                 }}
