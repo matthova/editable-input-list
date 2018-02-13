@@ -13,6 +13,9 @@ class App extends Component {
     this.state = {
       text: (list != null && list.split('\n')) || ['<<0>>'],
     };
+
+    this.checkboxReg = /<<(\d)>>/;
+
     autobind(this);
   }
 
@@ -73,8 +76,8 @@ class App extends Component {
         // backspace can cause the browser to go back in history
         e.preventDefault();
         const originalLength = text[i - 1].length;
-        const extra = text.splice(i, 1);
-        text[i - 1] += extra[0];
+        const extra = text.splice(i, 1)[0].replace(this.checkboxReg, '');
+        text[i - 1] += extra;
         this.setState({ text }, () => {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
@@ -98,13 +101,12 @@ class App extends Component {
   }
 
   render = () => {
-    const checkboxReg = /<<(\d)>>/;
     return (
       <div>
         {/* <div>{this.state.text.join('\n')}</div> */}
         <div>
           {this.state.text.map((line, i) => {
-            const checkboxMatch = line.match(checkboxReg);
+            const checkboxMatch = line.match(this.checkboxReg);
             const checked = Array.isArray(checkboxMatch) && checkboxMatch[1] === '1' ? true : false;
             return (
               <div key={i}>
@@ -116,7 +118,7 @@ class App extends Component {
                   checked={checked}
                 />
                 <input
-                  value={line.replace(checkboxReg, '')}
+                  value={line.replace(this.checkboxReg, '')}
                   onChange={e => {
                     this.handleChange(e, i);
                   }}
