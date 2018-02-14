@@ -95,6 +95,12 @@ class App extends Component {
           localStorage.setItem('list', this.state.text.join('\n'));
         });
       }
+    } else if (key === 38 && i > 0) {
+      const inputElement = 'input' + (i - 1);
+      this[inputElement].focus();
+    } else if (key === 40 && i < this.state.text.length - 1) {
+      const inputElement = 'input' + (i + 1);
+      this[inputElement].focus();
     }
     return false;
   }
