@@ -15,6 +15,7 @@ class App extends Component {
     };
 
     this.checkboxReg = /<<(\d)>>/;
+    this.typeTimeoutDelay = 2000; // Time delay before saving typing
 
     autobind(this);
   }
@@ -22,16 +23,30 @@ class App extends Component {
   componentDidMount() {
     // Save the list to local storage before closing
     window.addEventListener('unload', ev => {
-      localStorage.setItem('list', this.state.text.join('\n'));
+      this.saveState();
     });
   }
 
+  saveState() {
+    localStorage.setItem('list', this.state.text.join('\n'));
+  }
+
+  // Called whenever a character is typed
   handleChange(e, i) {
     // Update the input item when text is added
     e.preventDefault();
     const text = Object.assign([], this.state.text);
     text[i] = text[i].substring(0, 5) + e.target.value;
     this.setState({ text });
+
+    // After 2 seconds, update the state, even if a new line isn't hit
+    if (this.typeTimeout != null) {
+      clearTimeout(this.typeTimeout);
+    }
+    this.typeTimeout = setTimeout(() => {
+      this.saveState();
+      this.typeTimeout = null;
+    }, this.typeTimeoutDelay);
   }
 
   handleDelete(e, i) {
@@ -65,7 +80,7 @@ class App extends Component {
 
       this.setState({ text }, () => {
         this['input' + (i + 1)].focus();
-        localStorage.setItem('list', this.state.text.join('\n'));
+        this.saveState();
       });
     }
   }
@@ -92,7 +107,7 @@ class App extends Component {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
           this[inputElement].setSelectionRange(originalLength, originalLength);
-          localStorage.setItem('list', this.state.text.join('\n'));
+          this.saveState();
         });
       }
       // On up arrow, move cursor up
@@ -116,7 +131,7 @@ class App extends Component {
       : text[i].replace('<<1>>', '<<0>>');
 
     this.setState({ text }, () => {
-      localStorage.setItem('list', this.state.text.join('\n'));
+      this.saveState();
     });
   }
 
@@ -147,6 +162,9 @@ class App extends Component {
                   }}
                   onKeyDown={e => {
                     this.handleKeyDown(e, i);
+                  }}
+                  onBlur={e => {
+                    this.saveState();
                   }}
                   ref={ref => (this['input' + i] = ref)}
                 />
