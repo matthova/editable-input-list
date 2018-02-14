@@ -26,13 +26,22 @@ class App extends Component {
     });
   }
 
-  handleChange = (e, i) => {
+  handleChange(e, i) {
     // Update the input item when text is added
     e.preventDefault();
     const text = Object.assign([], this.state.text);
     text[i] = text[i].substring(0, 5) + e.target.value;
     this.setState({ text });
-  };
+  }
+
+  handleDelete(e, i) {
+    const text = Object.assign([], this.state.text);
+    text.splice(i, 1);
+    if (text.length === 0) {
+      text.push('<<0>>');
+    }
+    this.setState({ text });
+  }
 
   handleKeyPress(e, i) {
     // Handle line breaks
@@ -117,6 +126,13 @@ class App extends Component {
                   }}
                   checked={checked}
                 />
+                <button
+                  onClick={e => {
+                    this.handleDelete(e, i);
+                  }}
+                >
+                  x
+                </button>
                 <input
                   value={line.replace(this.checkboxReg, '')}
                   onChange={e => {
