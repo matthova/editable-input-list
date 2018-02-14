@@ -37,6 +37,7 @@ class App extends Component {
   handleDelete(e, i) {
     const text = Object.assign([], this.state.text);
     text.splice(i, 1);
+    // If we delete all of the items, keep a blank input
     if (text.length === 0) {
       text.push('<<0>>');
     }
