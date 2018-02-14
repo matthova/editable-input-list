@@ -97,10 +97,12 @@ class App extends Component {
       }
       // On up arrow, move cursor up
     } else if (key === 38 && i > 0) {
+      e.preventDefault();
       const inputElement = 'input' + (i - 1);
       this[inputElement].focus();
       // On down arrow, move cursor down
     } else if (key === 40 && i < this.state.text.length - 1) {
+      e.preventDefault();
       const inputElement = 'input' + (i + 1);
       this[inputElement].focus();
     }
@@ -135,13 +137,6 @@ class App extends Component {
                   }}
                   checked={checked}
                 />
-                <button
-                  onClick={e => {
-                    this.handleDelete(e, i);
-                  }}
-                >
-                  x
-                </button>
                 <input
                   value={line.replace(this.checkboxReg, '')}
                   onChange={e => {
@@ -155,6 +150,14 @@ class App extends Component {
                   }}
                   ref={ref => (this['input' + i] = ref)}
                 />
+                <button
+                  onClick={e => {
+                    this.handleDelete(e, i);
+                  }}
+                  style={{ background: 'red', color: 'white' }}
+                >
+                  x
+                </button>
               </div>
             );
           })}
