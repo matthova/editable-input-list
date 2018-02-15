@@ -79,7 +79,9 @@ class App extends Component {
       text.splice(i + 1, 0, end);
 
       this.setState({ text }, () => {
-        this['input' + (i + 1)].focus();
+        const inputElement = 'input' + (i + 1);
+        this[inputElement].focus();
+        this[inputElement].setSelectionRange(0, 0);
         this.saveState();
       });
     }
