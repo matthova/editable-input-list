@@ -90,16 +90,19 @@ class App extends Component {
   handleKeyDown(e, i) {
     const key = e.keyCode || e.charCode;
     // if the user hits backspace
+    const backItem = this['input' + i];
+    const startPos = backItem.selectionStart;
+    const endPos = backItem.selectionEnd;
+
     if (key === 8 || key === 46) {
       const text = Object.assign([], this.state.text);
-      const backItem = this['input' + i];
-      const startPos = backItem.selectionStart;
-      const endPos = backItem.selectionEnd;
 
-      // If the cursor is at the beginning
-      // And it's not highlighted
-      // and it's not the first item
       if (startPos === 0 && endPos === 0 && i !== 0) {
+        // If the cursor is at the beginning
+        // And it's not highlighted
+        // and it's not the first item
+        // backspace should delete the line and collapse any info onto the previous line
+
         // backspace can cause the browser to go back in history
         e.preventDefault();
         const originalLength = text[i - 1].length;
@@ -120,17 +123,40 @@ class App extends Component {
         text[0] = '<<0>>';
         this.setState({ text });
       }
-      // On up arrow, move cursor up
     } else if (key === 38 && i > 0) {
+      // On up arrow, move cursor up
       e.preventDefault();
       const inputElement = 'input' + (i - 1);
       this[inputElement].focus();
-      // On down arrow, move cursor down
     } else if (key === 40 && i < this.state.text.length - 1) {
+      // On down arrow, move cursor down
       e.preventDefault();
       const inputElement = 'input' + (i + 1);
       this[inputElement].focus();
+      //
+    } else if (key === 37 && i > 0 && startPos === 0 && endPos === 0) {
+      e.preventDefault();
+      const inputElement = 'input' + (i - 1);
+      this[inputElement].focus();
+      this[inputElement].setSelectionRange(
+        this.state.text[i - 1].length - 5,
+        this.state.text[i - 1].length - 5,
+      );
+    } else if (
+      // On arrow right, if text isn't highlighted
+      // and there's an item below, move cursor down
+      key === 39 &&
+      i < this.state.text.length - 1 &&
+      startPos + 5 === this.state.text[i].length &&
+      endPos + 5 === this.state.text[i].length
+    ) {
+      e.preventDefault();
+      const inputElement = 'input' + (i + 1);
+      this[inputElement].focus();
+      this[inputElement].setSelectionRange(0, 0);
     }
+
+    // On left arrow, love cursor up
     return false;
   }
 
