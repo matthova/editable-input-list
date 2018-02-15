@@ -111,6 +111,14 @@ class App extends Component {
           this[inputElement].setSelectionRange(originalLength - 5, originalLength - 5);
           this.saveState();
         });
+        // Delete the first line, if there are lines after it
+      } else if (i === 0 && startPos === 0 && endPos === 0 && text.length > 1) {
+        text.splice(0, 1);
+        this.setState({ text });
+        // Reset the checkbox if the first line is empty
+      } else if (i === 0 && text[0].length === 5 && text[0] === '<<1>>') {
+        text[0] = '<<0>>';
+        this.setState({ text });
       }
       // On up arrow, move cursor up
     } else if (key === 38 && i > 0) {
