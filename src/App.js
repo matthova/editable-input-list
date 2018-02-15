@@ -106,7 +106,7 @@ class App extends Component {
         this.setState({ text }, () => {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
-          this[inputElement].setSelectionRange(originalLength, originalLength);
+          this[inputElement].setSelectionRange(originalLength - 5, originalLength - 5);
           this.saveState();
         });
       }
