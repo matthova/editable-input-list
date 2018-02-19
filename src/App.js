@@ -1,21 +1,25 @@
 import React, { Component } from 'react';
+import { Motion, spring } from 'react-motion';
 import autobind from 'react-autobind';
 
+import random64String from './random64String';
 import './App.css';
 
 class App extends Component {
   constructor(props) {
     super(props);
+    this.checkboxReg = /(\d)/;
+    this.base64reg = /[\s\S]/;
+    this.lineReg = /(\d)([\s\S]{8})/;
+    this.typeTimeoutDelay = 2000; // Time delay before saving typing
 
     // Load local save data, if it's there
-    const list = localStorage.getItem('list');
+    const list = localStorage.getItem('list') || '0' + random64String(8);
+    // const list = '0' + random64String(8);
 
     this.state = {
-      text: (list != null && list.split('\n')) || ['<<0>>'],
+      text: this.loadItemArray(list),
     };
-
-    this.checkboxReg = /<<(\d)>>/;
-    this.typeTimeoutDelay = 2000; // Time delay before saving typing
 
     autobind(this);
   }
@@ -27,16 +31,49 @@ class App extends Component {
     });
   }
 
+  loadItemArray(itemArrayString) {
+    const itemArray = itemArrayString.split(this.lineReg);
+    if (itemArray[0] === '') {
+      itemArray.shift();
+    }
+
+    const objectArray = [];
+
+    while (itemArray.length !== 0) {
+      const items = itemArray.splice(0, 3);
+      const newItem = this.createListArray(items);
+      objectArray.push(newItem);
+    }
+
+    return objectArray;
+  }
+
+  createListArray(inputArray) {
+    return {
+      complete: inputArray[0] === '0' ? false : true,
+      id: inputArray[1],
+      item: inputArray[2] || '',
+    };
+  }
+
+  createListItem(string) {}
+
   saveState() {
-    localStorage.setItem('list', this.state.text.join('\n'));
+    const bigString = this.state.text
+      .map(item => {
+        return (item.complete ? '1' : '0') + item.id + item.item;
+      })
+      .join('');
+
+    localStorage.setItem('list', bigString);
   }
 
   // Called whenever a character is typed
-  handleChange(e, i) {
+  handleChange(e, i, item) {
     // Update the input item when text is added
     e.preventDefault();
     const text = Object.assign([], this.state.text);
-    text[i] = text[i].substring(0, 5) + e.target.value;
+    text[i].item = e.target.value;
     this.setState({ text });
 
     // After 2 seconds, update the state, even if a new line isn't hit
@@ -49,7 +86,7 @@ class App extends Component {
     }, this.typeTimeoutDelay);
   }
 
-  handleDelete(e, i) {
+  handleDelete(e, i, item) {
     const text = Object.assign([], this.state.text);
     text.splice(i, 1);
     // If we delete all of the items, keep a blank input
@@ -59,7 +96,7 @@ class App extends Component {
     this.setState({ text });
   }
 
-  handleKeyPress(e, i) {
+  handleKeyPress(e, i, item) {
     // Handle line breaks
     if (e.key === 'Enter') {
       const text = Object.assign([], this.state.text);
@@ -68,14 +105,18 @@ class App extends Component {
       const startPos = splitElement.selectionStart;
       const endPos = splitElement.selectionEnd;
 
-      const checked = text[i].substring(0, 5);
-      const textArea = text[i].substring(5);
+      const checked = text[i].checked;
+      const textArea = text[i].item;
       const beginning = textArea.substring(0, startPos);
       // The middle area will be deleted
       const middle = textArea.substring(startPos, endPos);
-      const end = '<<0>>' + textArea.substring(endPos, text[i].length);
+      const end = {
+        complete: false,
+        id: random64String(8),
+        item: textArea.substring(endPos, text[i].length),
+      };
 
-      text[i] = checked + beginning;
+      text[i].item = beginning;
       text.splice(i + 1, 0, end);
 
       this.setState({ text }, () => {
@@ -87,7 +128,7 @@ class App extends Component {
     }
   }
 
-  handleKeyDown(e, i) {
+  handleKeyDown(e, i, item) {
     const key = e.keyCode || e.charCode;
     // if the user hits backspace
     const backItem = this['input' + i];
@@ -105,13 +146,13 @@ class App extends Component {
 
         // backspace can cause the browser to go back in history
         e.preventDefault();
-        const originalLength = text[i - 1].length;
-        const extra = text.splice(i, 1)[0].replace(this.checkboxReg, '');
-        text[i - 1] += extra;
+        const originalLength = text[i - 1].item.length;
+        const extra = text.splice(i, 1)[0].item;
+        text[i - 1].item += extra;
         this.setState({ text }, () => {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
-          this[inputElement].setSelectionRange(originalLength - 5, originalLength - 5);
+          this[inputElement].setSelectionRange(originalLength, originalLength);
           this.saveState();
         });
         // Delete the first line, if there are lines after it
@@ -119,8 +160,8 @@ class App extends Component {
         text.splice(0, 1);
         this.setState({ text });
         // Reset the checkbox if the first line is empty
-      } else if (i === 0 && text[0].length === 5 && text[0] === '<<1>>') {
-        text[0] = '<<0>>';
+      } else if (i === 0 && text[0].item.length === 0 && text[0].complete === true) {
+        text[0].complete = false;
         this.setState({ text });
       }
     } else if (key === 38 && i > 0) {
@@ -139,16 +180,16 @@ class App extends Component {
       const inputElement = 'input' + (i - 1);
       this[inputElement].focus();
       this[inputElement].setSelectionRange(
-        this.state.text[i - 1].length - 5,
-        this.state.text[i - 1].length - 5,
+        this.state.text[i - 1].item.length,
+        this.state.text[i - 1].item.length,
       );
     } else if (
       // On arrow right, if text isn't highlighted
       // and there's an item below, move cursor down
       key === 39 &&
       i < this.state.text.length - 1 &&
-      startPos + 5 === this.state.text[i].length &&
-      endPos + 5 === this.state.text[i].length
+      startPos === this.state.text[i].item.length &&
+      endPos === this.state.text[i].item.length
     ) {
       e.preventDefault();
       const inputElement = 'input' + (i + 1);
@@ -160,11 +201,9 @@ class App extends Component {
     return false;
   }
 
-  handleToggleChecked(e, i) {
+  handleToggleChecked(e, i, item) {
     const text = Object.assign([], this.state.text);
-    text[i] = e.target.checked
-      ? text[i].replace('<<0>>', '<<1>>')
-      : text[i].replace('<<1>>', '<<0>>');
+    text[i].complete = !text[i].complete;
 
     this.setState({ text }, () => {
       this.saveState();
@@ -174,30 +213,27 @@ class App extends Component {
   render = () => {
     return (
       <div>
-        {/* <div>{this.state.text.join('\n')}</div> */}
         <div>
-          {this.state.text.map((line, i) => {
-            const checkboxMatch = line.match(this.checkboxReg);
-            const checked = Array.isArray(checkboxMatch) && checkboxMatch[1] === '1' ? true : false;
+          {this.state.text.map((item, i) => {
             return (
-              <div key={i}>
+              <div key={item.id}>
                 <input
                   type="checkbox"
                   onChange={e => {
-                    this.handleToggleChecked(e, i);
+                    this.handleToggleChecked(e, i, item);
                   }}
-                  checked={checked}
+                  checked={item.complete}
                 />
                 <input
-                  value={line.replace(this.checkboxReg, '')}
+                  value={item.item}
                   onChange={e => {
-                    this.handleChange(e, i);
+                    this.handleChange(e, i, item);
                   }}
                   onKeyPress={e => {
-                    this.handleKeyPress(e, i);
+                    this.handleKeyPress(e, i, item);
                   }}
                   onKeyDown={e => {
-                    this.handleKeyDown(e, i);
+                    this.handleKeyDown(e, i, item);
                   }}
                   onBlur={e => {
                     this.saveState();
@@ -206,7 +242,7 @@ class App extends Component {
                 />
                 <button
                   onClick={e => {
-                    this.handleDelete(e, i);
+                    this.handleDelete(e, i, item);
                   }}
                   style={{ background: 'red', color: 'white' }}
                 >
