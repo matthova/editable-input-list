@@ -62,7 +62,9 @@ class App extends Component {
   }
 
   handleTouchMove(e) {
-    // e.preventDefault();
+    if (this.state.isPressed) {
+      e.preventDefault();
+    }
     this.handleMouseMove(e.touches[0]);
   }
 
@@ -138,6 +140,9 @@ class App extends Component {
   saveState() {
     const bigString = this.state.text
       .map(item => {
+        if (!item) {
+          return '';
+        }
         return (item.complete ? '1' : '0') + item.id + item.item;
       })
       .join('');
@@ -148,7 +153,7 @@ class App extends Component {
   // Called whenever a character is typed
   handleChange(e, i, item) {
     // Update the input item when text is added
-    // e.preventDefault();
+    e.preventDefault();
     const text = Object.assign([], this.state.text);
     text[i].item = e.target.value;
     this.setState({ text });
@@ -207,7 +212,6 @@ class App extends Component {
       this.setState({ text, order }, () => {
         const inputElement = 'input' + (i + 1);
         this[inputElement].focus();
-        console.log('set to zero');
         this[inputElement].setSelectionRange(0, 0);
         this.saveState();
       });
@@ -222,6 +226,10 @@ class App extends Component {
     const endPos = backItem.selectionEnd;
 
     if (key === 8 || key === 46) {
+      if (item.item.length === 0) {
+        e.preventDefault();
+      }
+
       const text = Object.assign([], this.state.text);
 
       if (startPos === 0 && endPos === 0 && i !== 0) {
@@ -231,21 +239,29 @@ class App extends Component {
         // backspace should delete the line and collapse any info onto the previous line
 
         // backspace can cause the browser to go back in history
-        // e.preventDefault();
         const originalLength = text[i - 1].item.length;
         const extra = text.splice(i, 1)[0].item;
         text[i - 1].item += extra;
         this.setState({ text }, () => {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
-          console.log('setting', originalLength);
           this[inputElement].setSelectionRange(originalLength, originalLength);
           this.saveState();
         });
         // Delete the first line, if there are lines after it
-      } else if (i === 0 && startPos === 0 && endPos === 0 && text.length > 1) {
+      } else if (
+        i === 0 &&
+        startPos === 0 &&
+        endPos === 0 &&
+        text[0].item.length === 0 &&
+        text.length > 1
+      ) {
         text.splice(0, 1);
-        this.setState({ text });
+        this.setState({ text }, () => {
+          if (this.state.text.length > 0) {
+            this.input0.focus();
+          }
+        });
         // Reset the checkbox if the first line is empty
       } else if (i === 0 && text[0].item.length === 0 && text[0].complete === true) {
         text[0].complete = false;
@@ -253,20 +269,19 @@ class App extends Component {
       }
     } else if (key === 38 && i > 0) {
       // On up arrow, move cursor up
-      // e.preventDefault();
+      e.preventDefault();
       const inputElement = 'input' + (i - 1);
       this[inputElement].focus();
     } else if (key === 40 && i < this.state.text.length - 1) {
       // On down arrow, move cursor down
-      // e.preventDefault();
+      e.preventDefault();
       const inputElement = 'input' + (i + 1);
       this[inputElement].focus();
       //
     } else if (key === 37 && i > 0 && startPos === 0 && endPos === 0) {
-      // e.preventDefault();
+      e.preventDefault();
       const inputElement = 'input' + (i - 1);
       this[inputElement].focus();
-      console.log('setting', this.state.text[i - 1].item.length);
       this[inputElement].setSelectionRange(
         this.state.text[i - 1].item.length,
         this.state.text[i - 1].item.length,
@@ -279,10 +294,9 @@ class App extends Component {
       startPos === this.state.text[i].item.length &&
       endPos === this.state.text[i].item.length
     ) {
-      // e.preventDefault();
+      e.preventDefault();
       const inputElement = 'input' + (i + 1);
       this[inputElement].focus();
-      console.log('set to zero');
       this[inputElement].setSelectionRange(0, 0);
     }
 
@@ -306,6 +320,10 @@ class App extends Component {
       <div>
         <div>
           {this.state.text.map((item, i) => {
+            if (!item) {
+              return null;
+            }
+
             const style =
               originalPosOfLastPressed === i && isPressed
                 ? {
@@ -339,6 +357,7 @@ class App extends Component {
                         display: 'inline',
                         float: 'left',
                         padding: '0 3px',
+                        cursor: this.state.isPressed ? 'grabbing' : 'grab',
                       }}
                     >
                       <div className="drag-div" />
