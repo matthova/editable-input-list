@@ -23,6 +23,88 @@
 }
 
 @keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+* {
+  padding: 0;
+  margin: 0;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+.drag-area-outer {
+  background-color: #eee;
+  color: #fff;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  font: 28px/1em "Helvetica";
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  display: -webkit-flex;
+  -webkit-justify-content: center;
+  -webkit-align-items: center;
+}
+.drag-area {
+  width: 320px;
+  height: 400px;
+}
+.drag-area-item {
+  position: absolute;
+  width: 320px;
+  height: 30px;
+  overflow: visible;
+  pointer-events: auto;
+  transform-origin: 50% 50% 0px;
+  border-radius: 4px;
+  color: rgb(153, 153, 153);
+  line-height: 24px;
+  font-size: 24px;
+  font-weight: 400;
+  background-color: rgb(255, 255, 255);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-box-sizing: border-box;
+}
+.link {
+  position: absolute;
+  color: rgb(76, 76, 76);
+  text-decoration: none;
+  font: 14px/1em "Helvetica";
+  padding: 10px;
+  top: 0;
+  left: 0;
+}
+
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.drag-div {
+  width: 30px;
+  height: 2px;
+  background: black;
+  margin: 3px 0px;
+}
+
+footer {
+  height: 24px;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
 }

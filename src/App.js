@@ -1,9 +1,24 @@
 import React, { Component } from 'react';
 import { Motion, spring } from 'react-motion';
 import autobind from 'react-autobind';
+import { range } from 'lodash';
 
 import random64String from './random64String';
 import './App.css';
+
+function reinsert(arr, from, to) {
+  const _arr = arr.slice(0);
+  const val = _arr[from];
+  _arr.splice(from, 1);
+  _arr.splice(to, 0, val);
+  return _arr;
+}
+
+function clamp(n, min, max) {
+  return Math.max(Math.min(n, max), min);
+}
+
+const springConfig = { stiffness: 300, damping: 50 };
 
 class App extends Component {
   constructor(props) {
@@ -15,20 +30,82 @@ class App extends Component {
 
     // Load local save data, if it's there
     const list = localStorage.getItem('list') || '0' + random64String(8);
-    // const list = '0' + random64String(8);
+    const text = this.loadItemArray(list);
 
     this.state = {
-      text: this.loadItemArray(list),
+      topDeltaY: 0,
+      mouseY: 0,
+      isPressed: false,
+      originalPosOfLastPressed: 0,
+      order: range(text.length),
+      text,
+      height: 35,
     };
 
     autobind(this);
   }
 
   componentDidMount() {
+    window.addEventListener('touchmove', this.handleTouchMove);
+    window.addEventListener('touchend', this.handleMouseUp);
+    window.addEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('mouseup', this.handleMouseUp);
+
     // Save the list to local storage before closing
     window.addEventListener('unload', ev => {
       this.saveState();
     });
+  }
+
+  handleTouchStart(key, pressLocation, e) {
+    this.handleMouseDown(key, pressLocation, e.touches[0]);
+  }
+
+  handleTouchMove(e) {
+    // e.preventDefault();
+    this.handleMouseMove(e.touches[0]);
+  }
+
+  handleMouseDown(pos, pressY, { pageY }) {
+    this.setState({
+      topDeltaY: pageY - pressY,
+      mouseY: pressY,
+      isPressed: true,
+      originalPosOfLastPressed: pos,
+    });
+  }
+
+  handleMouseMove({ pageY }) {
+    const { isPressed, topDeltaY, order, originalPosOfLastPressed } = this.state;
+
+    if (isPressed) {
+      const mouseY = pageY - topDeltaY;
+      const currentRow = clamp(
+        Math.round(mouseY / this.state.height),
+        0,
+        this.state.text.length - 1,
+      );
+      let newOrder = order;
+
+      if (currentRow !== order.indexOf(originalPosOfLastPressed)) {
+        newOrder = reinsert(order, order.indexOf(originalPosOfLastPressed), currentRow);
+      }
+
+      this.setState({ mouseY, order: newOrder });
+    }
+  }
+
+  handleMouseUp() {
+    const newState = {
+      isPressed: false,
+      topDeltaY: 0,
+      text: this.state.order.map(i => this.state.text[i]),
+      order: range(this.state.order.length),
+    };
+
+    const order = range(this.state.order.length);
+
+    this.setState(newState);
   }
 
   loadItemArray(itemArrayString) {
@@ -71,7 +148,7 @@ class App extends Component {
   // Called whenever a character is typed
   handleChange(e, i, item) {
     // Update the input item when text is added
-    e.preventDefault();
+    // e.preventDefault();
     const text = Object.assign([], this.state.text);
     text[i].item = e.target.value;
     this.setState({ text });
@@ -91,9 +168,15 @@ class App extends Component {
     text.splice(i, 1);
     // If we delete all of the items, keep a blank input
     if (text.length === 0) {
-      text.push('<<0>>');
+      text.push({
+        complete: false,
+        id: random64String(8),
+        item: '',
+      });
     }
-    this.setState({ text });
+
+    const order = range(text.length);
+    this.setState({ text, order });
   }
 
   handleKeyPress(e, i, item) {
@@ -119,9 +202,12 @@ class App extends Component {
       text[i].item = beginning;
       text.splice(i + 1, 0, end);
 
-      this.setState({ text }, () => {
+      const order = range(text.length);
+
+      this.setState({ text, order }, () => {
         const inputElement = 'input' + (i + 1);
         this[inputElement].focus();
+        console.log('set to zero');
         this[inputElement].setSelectionRange(0, 0);
         this.saveState();
       });
@@ -145,13 +231,14 @@ class App extends Component {
         // backspace should delete the line and collapse any info onto the previous line
 
         // backspace can cause the browser to go back in history
-        e.preventDefault();
+        // e.preventDefault();
         const originalLength = text[i - 1].item.length;
         const extra = text.splice(i, 1)[0].item;
         text[i - 1].item += extra;
         this.setState({ text }, () => {
           const inputElement = 'input' + (i - 1);
           this[inputElement].focus();
+          console.log('setting', originalLength);
           this[inputElement].setSelectionRange(originalLength, originalLength);
           this.saveState();
         });
@@ -166,19 +253,20 @@ class App extends Component {
       }
     } else if (key === 38 && i > 0) {
       // On up arrow, move cursor up
-      e.preventDefault();
+      // e.preventDefault();
       const inputElement = 'input' + (i - 1);
       this[inputElement].focus();
     } else if (key === 40 && i < this.state.text.length - 1) {
       // On down arrow, move cursor down
-      e.preventDefault();
+      // e.preventDefault();
       const inputElement = 'input' + (i + 1);
       this[inputElement].focus();
       //
     } else if (key === 37 && i > 0 && startPos === 0 && endPos === 0) {
-      e.preventDefault();
+      // e.preventDefault();
       const inputElement = 'input' + (i - 1);
       this[inputElement].focus();
+      console.log('setting', this.state.text[i - 1].item.length);
       this[inputElement].setSelectionRange(
         this.state.text[i - 1].item.length,
         this.state.text[i - 1].item.length,
@@ -191,9 +279,10 @@ class App extends Component {
       startPos === this.state.text[i].item.length &&
       endPos === this.state.text[i].item.length
     ) {
-      e.preventDefault();
+      // e.preventDefault();
       const inputElement = 'input' + (i + 1);
       this[inputElement].focus();
+      console.log('set to zero');
       this[inputElement].setSelectionRange(0, 0);
     }
 
@@ -211,44 +300,87 @@ class App extends Component {
   }
 
   render = () => {
+    const { mouseY, isPressed, originalPosOfLastPressed, order } = this.state;
+
     return (
       <div>
         <div>
           {this.state.text.map((item, i) => {
+            const style =
+              originalPosOfLastPressed === i && isPressed
+                ? {
+                    scale: spring(1.1, springConfig),
+                    shadow: spring(16, springConfig),
+                    y: mouseY,
+                  }
+                : {
+                    scale: spring(1, springConfig),
+                    shadow: spring(1, springConfig),
+                    y: spring(order.indexOf(i) * this.state.height, springConfig),
+                  };
             return (
-              <div key={item.id}>
-                <input
-                  type="checkbox"
-                  onChange={e => {
-                    this.handleToggleChecked(e, i, item);
-                  }}
-                  checked={item.complete}
-                />
-                <input
-                  value={item.item}
-                  onChange={e => {
-                    this.handleChange(e, i, item);
-                  }}
-                  onKeyPress={e => {
-                    this.handleKeyPress(e, i, item);
-                  }}
-                  onKeyDown={e => {
-                    this.handleKeyDown(e, i, item);
-                  }}
-                  onBlur={e => {
-                    this.saveState();
-                  }}
-                  ref={ref => (this['input' + i] = ref)}
-                />
-                <button
-                  onClick={e => {
-                    this.handleDelete(e, i, item);
-                  }}
-                  style={{ background: 'red', color: 'white' }}
-                >
-                  x
-                </button>
-              </div>
+              <Motion style={style} key={item.id}>
+                {({ scale, shadow, y }) => (
+                  <div
+                    className="drag-area-item"
+                    style={{
+                      boxShadow: `rgba(0, 0, 0, 0.2) 0px ${shadow}px ${2 * shadow}px 0px`,
+                      transform: `translate3d(0, ${y}px, 0) scale(${scale})`,
+                      WebkitTransform: `translate3d(0, ${y}px, 0) scale(${scale})`,
+                      zIndex: i === originalPosOfLastPressed ? 99 : i,
+                    }}
+                  >
+                    <div
+                      role="select"
+                      onMouseDown={this.handleMouseDown.bind(null, i, y)}
+                      onTouchStart={this.handleTouchStart.bind(null, i, y)}
+                      style={{
+                        width: '30px',
+                        display: 'inline',
+                        float: 'left',
+                        padding: '0 3px',
+                      }}
+                    >
+                      <div className="drag-div" />
+                      <div className="drag-div" />
+                      <div className="drag-div" />
+                    </div>
+                    <div>
+                      <input
+                        type="checkbox"
+                        onChange={e => {
+                          this.handleToggleChecked(e, i, item);
+                        }}
+                        checked={item.complete}
+                      />
+                      <input
+                        value={item.item}
+                        onChange={e => {
+                          this.handleChange(e, i, item);
+                        }}
+                        onKeyPress={e => {
+                          this.handleKeyPress(e, i, item);
+                        }}
+                        onKeyDown={e => {
+                          this.handleKeyDown(e, i, item);
+                        }}
+                        onBlur={e => {
+                          this.saveState();
+                        }}
+                        ref={ref => (this['input' + i] = ref)}
+                      />
+                      <button
+                        onClick={e => {
+                          this.handleDelete(e, i, item);
+                        }}
+                        style={{ background: 'red', color: 'white' }}
+                      >
+                        x
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </Motion>
             );
           })}
         </div>
